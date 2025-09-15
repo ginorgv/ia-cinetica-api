@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>TIE Kinetic Predictor | By Raúl Vázquez</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 20px; color: #333; }
+        h1, h2 { color: #1a237e; }
+        textarea { width: 100%; height: 150px; font-size: 1rem; border-radius: 8px; border: 1px solid #ccc; padding: 10px; box-sizing: border-box; margin-bottom: 1rem; }
+        button { background-color: #3949ab; color: white; border: none; padding: 15px 30px; font-size: 1.1rem; border-radius: 8px; cursor: pointer; transition: background-color 0.2s; }
+        button:hover { background-color: #1a237e; }
+        #results { margin-top: 2rem; border-top: 2px solid #e0e0e0; padding-top: 1rem; }
+        .disclaimer { font-size: 0.8rem; color: #777; margin-top: 2rem; border-top: 1px solid #eee; padding-top: 1rem;}
+    </style>
+</head>
+<body>
+
+    <h1>TIE Kinetic Predictor</h1>
+    <p>Una IA determinista que predice la velocidad de traducción ribosomal basándose en la ley física de composición elemental (Vázquez, 2025). Este modelo para <strong>E. coli</strong> ha sido validado con datos experimentales (Hussmann et al., Cell 2021) alcanzando una correlación de <strong>r > 0.98</strong>.</p>
+    
+    <textarea id="sequenceInput" placeholder="Pega aquí tu secuencia de ADN o ARNm..."></textarea>
+    <button onclick="analyzeSequence()">✨ Predecir Perfil Cinético</button>
+    
+    <div id="results">
+        <p>Los resultados del análisis aparecerán aquí.</p>
+    </div>
+
+    <p class="disclaimer"><strong>PARA USO EXCLUSIVO EN INVESTIGACIÓN (RUO).</strong> Esta herramienta proporciona predicciones basadas en un modelo teórico y no es un dispositivo de diagnóstico médico. No debe ser utilizada para tomar decisiones clínicas. El usuario asume toda la responsabilidad por el uso de la información proporcionada.</p>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        async function analyzeSequence() {
+            const sequence = document.getElementById('sequenceInput').value;
+            const resultsDiv = document.getElementById('results');
+            const button = document.querySelector('button');
+
+            if (!sequence) {
+                resultsDiv.innerHTML = '<p style="color: red;">Por favor, introduce una secuencia.</p>';
+                return;
+            }
+
+            resultsDiv.innerHTML = '<p>🧠 Analizando con el modelo de E. coli...</p>';
+            button.disabled = true;
+            button.innerText = 'Calculando...';
+
+            try {
+                // !!! IMPORTANTE: REEMPLAZA ESTA URL CON LA TUYA DE RENDER !!!
+                const apiUrl = 'https://ia-cinetica-api.onrender.com/api/predict/ecoli';
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sequence: sequence })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `Error del servidor: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                if (data.length === 0) {
+                    resultsDiv.innerHTML = '<p>No se encontraron codones válidos en la secuencia.</p>';
+                    return;
+                }
+                
+                resultsDiv.innerHTML = '<h2>Perfil Cinético Predicho</h2><canvas id="profileChart"></canvas>';
+                
+                const labels = data.map(d => `${d.codon_index}: ${d.codon}`);
+                const values = data.map(d => d.predicted_pause_ms);
+
+                new Chart(document.getElementById('profileChart'), {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Pausa Predicha (ms)',
+                            data: values,
+                            borderColor: 'navy',
+                            backgroundColor: 'rgba(26, 35, 126, 0.1)',
+                            fill: true,
+                            tension: 0.1
+                        }]
+                    },
+                    options: {
+                        scales: {
+                            y: { title: { display: true, text: 'Pausa Predicha (ms)' } },
+                            x: { title: { display: true, text: 'Posición del Codón' } }
+                        }
+                    }
+                });
+
+            } catch (error) {
+                resultsDiv.innerHTML = `<p style="color: red;"><strong>Error:</strong> ${error.message}</p>`;
+            } finally {
+                button.disabled = false;
+                button.innerText = '✨ Predecir Perfil Cinético';
+            }
+        }
+    </script>
+</body>
+</html>
