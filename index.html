@@ -42,26 +42,21 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <script>
-        let activeChart = null; // Referencia al gráfico activo para destruirlo antes de redibujar
+        let activeChart = null; 
 
-        // --- LÓGICA DE CONTROL PRINCIPAL ---
         function masterAnalyze() {
             const seq1 = document.getElementById('sequence1Input').value.trim();
             const seq2 = document.getElementById('sequence2Input').value.trim();
 
             if (seq1 && seq2) {
-                // Si ambos campos tienen texto, se ejecuta la herramienta de comparación
                 analyzeComparison(seq1, seq2);
             } else if (seq1) {
-                // Si solo el primer campo tiene texto, se ejecuta el perfilador simple
                 analyzeSingle(seq1);
             } else {
-                // Si no hay texto en el primer campo, muestra un error
                 document.getElementById('results').innerHTML = '<p style="color: red;">Por favor, introduce al menos la Secuencia 1.</p>';
             }
         }
 
-        // --- HERRAMIENTA 1: PERFILADOR DE SECUENCIA ÚNICA ---
         async function analyzeSingle(sequence) {
             const resultsDiv = document.getElementById('results');
             const button = document.querySelector('button');
@@ -79,9 +74,10 @@
                         borderColor: 'navy',
                         backgroundColor: 'rgba(26, 35, 126, 0.1)',
                         fill: true,
-                        tension: 0.1
+                        // Almacenamos los datos originales para usarlos en el tooltip
+                        customData: data 
                     }],
-                    labels: data.map(d => `${d.codon_index}: ${d.codon}`)
+                    labels: data.map(d => d.codon_index) // Usamos solo el índice para el eje X
                 });
             } catch (error) {
                 resultsDiv.innerHTML = `<p style="color: red;"><strong>Error:</strong> ${error.message}</p>`;
@@ -90,7 +86,6 @@
             }
         }
 
-        // --- HERRAMIENTA 2: ANÁLISIS COMPARATIVO DE MUTACIÓN ---
         async function analyzeComparison(seq1, seq2) {
             const resultsDiv = document.getElementById('results');
             const button = document.querySelector('button');
@@ -107,7 +102,8 @@
                             data: data1.map(d => d.predicted_pause_ms),
                             borderColor: 'blue',
                             borderWidth: 2,
-                            fill: false
+                            fill: false,
+                            customData: data1 // Almacenamos datos de la secuencia 1
                         },
                         {
                             label: 'Secuencia 2 (Mutada)',
@@ -115,10 +111,11 @@
                             borderColor: 'red',
                             borderDash: [5, 5],
                             borderWidth: 2,
-                            fill: false
+                            fill: false,
+                            customData: data2 // Almacenamos datos de la secuencia 2
                         }
                     ],
-                    labels: data1.map(d => `${d.codon_index}: ${d.codon}`)
+                    labels: data1.map(d => d.codon_index) // Usamos solo el índice para el eje X
                 });
             } catch (error) {
                 resultsDiv.innerHTML = `<p style="color: red;"><strong>Error:</strong> ${error.message}</p>`;
@@ -127,9 +124,7 @@
             }
         }
 
-        // --- FUNCIONES AUXILIARES ---
         async function fetchProfile(sequence) {
-            // !!! IMPORTANTE: REEMPLAZA ESTA URL CON LA TUYA DE RENDER !!!
             const apiUrl = 'https://ia-cinetica-api.onrender.com/api/predict/ecoli';
             const response = await fetch(apiUrl, {
                 method: 'POST',
@@ -156,7 +151,27 @@
                 },
                 options: {
                     scales: { y: { title: { display: true, text: 'Pausa Predicha (ms)' } }, x: { title: { display: true, text: 'Posición del Codón' } } },
-                    plugins: { tooltip: { mode: 'index', intersect: false } },
+                    plugins: { 
+                        // --- ESTA ES LA CORRECCIÓN CLAVE ---
+                        tooltip: { 
+                            mode: 'index', 
+                            intersect: false,
+                            callbacks: {
+                                // Personalizamos el tooltip para mostrar el codón correcto
+                                title: function(tooltipItems) {
+                                    const index = tooltipItems[0].dataIndex;
+                                    return `Posición del Codón: ${index}`;
+                                },
+                                label: function(context) {
+                                    const datasetLabel = context.dataset.label || '';
+                                    const value = context.parsed.y;
+                                    // Accedemos a los datos personalizados para obtener el codón
+                                    const codonData = context.dataset.customData[context.dataIndex];
+                                    return `${datasetLabel}: ${codonData.codon} (${value.toFixed(2)} ms)`;
+                                }
+                            }
+                        } 
+                    },
                     interaction: { mode: 'index', intersect: false }
                 }
             });
@@ -172,7 +187,6 @@
             button.disabled = false;
             button.innerText = text;
         }
-
     </script>
 </body>
 </html>
