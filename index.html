@@ -22,18 +22,18 @@
     
     <div class="container">
         <div>
-            <h2>Secuencia Original</h2>
-            <textarea id="originalSequenceInput" placeholder="Pega aquí la secuencia de ADN o ARNm original..."></textarea>
+            <h2>Secuencia 1 (Original)</h2>
+            <textarea id="sequence1Input" placeholder="Pega aquí la secuencia para analizar su perfil..."></textarea>
         </div>
         <div>
-            <h2>Secuencia Mutada</h2>
-            <textarea id="mutatedSequenceInput" placeholder="Pega aquí la secuencia mutada..."></textarea>
+            <h2>Secuencia 2 (Mutada - Opcional)</h2>
+            <textarea id="sequence2Input" placeholder="Pega aquí una segunda secuencia para comparar..."></textarea>
         </div>
 
-        <button onclick="analyzeAndCompare()">🔬 Analizar Impacto de la Mutación</button>
+        <button onclick="masterAnalyze()">🔬 Analizar</button>
 
         <div id="results">
-            <p>El gráfico comparativo aparecerá aquí.</p>
+            <p>Introduce una secuencia en el primer campo para generar su perfil, o en ambos campos para comparar.</p>
         </div>
 
         <p class="disclaimer"><strong>PARA USO EXCLUSIVO EN INVESTIGACIÓN (RUO).</strong> Esta herramienta proporciona predicciones basadas en un modelo teórico y no es un dispositivo de diagnóstico médico. No debe ser utilizada para tomar decisiones clínicas. El usuario asume toda la responsabilidad por el uso de la información proporcionada.</p>
@@ -42,100 +42,137 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <script>
-        // Guardamos una referencia al gráfico para poder destruirlo antes de crear uno nuevo
-        let comparisonChart = null;
+        let activeChart = null; // Referencia al gráfico activo para destruirlo antes de redibujar
 
-        async function analyzeAndCompare() {
-            const originalSeq = document.getElementById('originalSequenceInput').value;
-            const mutatedSeq = document.getElementById('mutatedSequenceInput').value;
+        // --- LÓGICA DE CONTROL PRINCIPAL ---
+        function masterAnalyze() {
+            const seq1 = document.getElementById('sequence1Input').value.trim();
+            const seq2 = document.getElementById('sequence2Input').value.trim();
+
+            if (seq1 && seq2) {
+                // Si ambos campos tienen texto, se ejecuta la herramienta de comparación
+                analyzeComparison(seq1, seq2);
+            } else if (seq1) {
+                // Si solo el primer campo tiene texto, se ejecuta el perfilador simple
+                analyzeSingle(seq1);
+            } else {
+                // Si no hay texto en el primer campo, muestra un error
+                document.getElementById('results').innerHTML = '<p style="color: red;">Por favor, introduce al menos la Secuencia 1.</p>';
+            }
+        }
+
+        // --- HERRAMIENTA 1: PERFILADOR DE SECUENCIA ÚNICA ---
+        async function analyzeSingle(sequence) {
             const resultsDiv = document.getElementById('results');
             const button = document.querySelector('button');
-
-            if (!originalSeq || !mutatedSeq) {
-                resultsDiv.innerHTML = '<p style="color: red;">Por favor, introduce ambas secuencias.</p>';
-                return;
-            }
-
-            resultsDiv.innerHTML = '<p>🧠 Analizando ambas secuencias...</p>';
-            button.disabled = true;
-            button.innerText = 'Calculando...';
+            setupAnalysisUI(button, resultsDiv, '🧠 Analizando perfil de secuencia única...');
 
             try {
-                // !!! IMPORTANTE: REEMPLAZA ESTA URL CON LA TUYA DE RENDER !!!
-                const apiUrl = 'https://ia-cinetica-api.onrender.com/api/predict/ecoli';
-
-                // Creamos una función auxiliar para llamar a la API
-                const fetchProfile = (sequence) => fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ sequence: sequence })
-                }).then(response => {
-                    if (!response.ok) return response.json().then(err => { throw new Error(err.error) });
-                    return response.json();
-                });
-
-                // Llamamos a la API para ambas secuencias en paralelo
-                const [originalData, mutatedData] = await Promise.all([
-                    fetchProfile(originalSeq),
-                    fetchProfile(mutatedSeq)
-                ]);
-
-                // Destruimos el gráfico anterior si existe
-                if (comparisonChart) {
-                    comparisonChart.destroy();
-                }
+                const data = await fetchProfile(sequence);
+                if (data.length === 0) throw new Error("No se encontraron codones válidos en la secuencia.");
                 
-                resultsDiv.innerHTML = '<h2>Análisis de Impacto Cinético</h2><canvas id="comparisonChartCanvas"></canvas>';
-                
-                const labels = originalData.map(d => `${d.codon_index}: ${d.codon}`);
-                const originalValues = originalData.map(d => d.predicted_pause_ms);
-                const mutatedValues = mutatedData.map(d => d.predicted_pause_ms);
-
-                const ctx = document.getElementById('comparisonChartCanvas');
-                comparisonChart = new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: labels,
-                        datasets: [
-                            {
-                                label: 'Original',
-                                data: originalValues,
-                                borderColor: 'blue',
-                                borderWidth: 2,
-                                fill: false,
-                                tension: 0.1
-                            },
-                            {
-                                label: 'Mutada',
-                                data: mutatedValues,
-                                borderColor: 'red',
-                                borderDash: [5, 5], // Línea discontinua para la mutada
-                                borderWidth: 2,
-                                fill: false,
-                                tension: 0.1
-                            }
-                        ]
-                    },
-                    options: {
-                        scales: {
-                            y: { title: { display: true, text: 'Pausa Predicha (ms)' } },
-                            x: { title: { display: true, text: 'Posición del Codón' } }
-                        },
-                        plugins: {
-                            tooltip: { mode: 'index', intersect: false },
-                            title: { display: true, text: 'Comparación de Perfiles Cinéticos', font: { size: 16 } }
-                        },
-                        interaction: { mode: 'index', intersect: false }
-                    }
+                renderChart({
+                    title: 'Perfil Cinético Estructural',
+                    datasets: [{
+                        label: 'Pausa Predicha (ms)',
+                        data: data.map(d => d.predicted_pause_ms),
+                        borderColor: 'navy',
+                        backgroundColor: 'rgba(26, 35, 126, 0.1)',
+                        fill: true,
+                        tension: 0.1
+                    }],
+                    labels: data.map(d => `${d.codon_index}: ${d.codon}`)
                 });
-
             } catch (error) {
                 resultsDiv.innerHTML = `<p style="color: red;"><strong>Error:</strong> ${error.message}</p>`;
             } finally {
-                button.disabled = false;
-                button.innerText = '🔬 Analizar Impacto de la Mutación';
+                resetButtonUI(button, '🔬 Analizar');
             }
         }
+
+        // --- HERRAMIENTA 2: ANÁLISIS COMPARATIVO DE MUTACIÓN ---
+        async function analyzeComparison(seq1, seq2) {
+            const resultsDiv = document.getElementById('results');
+            const button = document.querySelector('button');
+            setupAnalysisUI(button, resultsDiv, '🧠 Realizando análisis comparativo...');
+            
+            try {
+                const [data1, data2] = await Promise.all([fetchProfile(seq1), fetchProfile(seq2)]);
+                
+                renderChart({
+                    title: 'Comparación de Perfiles Cinéticos',
+                    datasets: [
+                        {
+                            label: 'Secuencia 1 (Original)',
+                            data: data1.map(d => d.predicted_pause_ms),
+                            borderColor: 'blue',
+                            borderWidth: 2,
+                            fill: false
+                        },
+                        {
+                            label: 'Secuencia 2 (Mutada)',
+                            data: data2.map(d => d.predicted_pause_ms),
+                            borderColor: 'red',
+                            borderDash: [5, 5],
+                            borderWidth: 2,
+                            fill: false
+                        }
+                    ],
+                    labels: data1.map(d => `${d.codon_index}: ${d.codon}`)
+                });
+            } catch (error) {
+                resultsDiv.innerHTML = `<p style="color: red;"><strong>Error:</strong> ${error.message}</p>`;
+            } finally {
+                resetButtonUI(button, '🔬 Analizar');
+            }
+        }
+
+        // --- FUNCIONES AUXILIARES ---
+        async function fetchProfile(sequence) {
+            // !!! IMPORTANTE: REEMPLAZA ESTA URL CON LA TUYA DE RENDER !!!
+            const apiUrl = 'https://ia-cinetica-api.onrender.com/api/predict/ecoli';
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sequence: sequence })
+            });
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.error || `Error del servidor: ${response.status}`);
+            }
+            return response.json();
+        }
+
+        function renderChart(config) {
+            const resultsDiv = document.getElementById('results');
+            if (activeChart) activeChart.destroy();
+            resultsDiv.innerHTML = `<h2>${config.title}</h2><canvas id="chartCanvas"></canvas>`;
+            const ctx = document.getElementById('chartCanvas');
+            activeChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: config.labels,
+                    datasets: config.datasets
+                },
+                options: {
+                    scales: { y: { title: { display: true, text: 'Pausa Predicha (ms)' } }, x: { title: { display: true, text: 'Posición del Codón' } } },
+                    plugins: { tooltip: { mode: 'index', intersect: false } },
+                    interaction: { mode: 'index', intersect: false }
+                }
+            });
+        }
+        
+        function setupAnalysisUI(button, resultsDiv, message) {
+            button.disabled = true;
+            button.innerText = 'Calculando...';
+            resultsDiv.innerHTML = `<p>${message}</p>`;
+        }
+        
+        function resetButtonUI(button, text) {
+            button.disabled = false;
+            button.innerText = text;
+        }
+
     </script>
 </body>
 </html>
