@@ -35,12 +35,16 @@ CONSTANTES_FISICAS = {
 }
 
 def load_and_learn_grammar(organism_name, url):
-    """Carga datos y aprende la gramática para un organismo."""
+    """
+    Carga datos y aprende la gramática para un organismo.
+    NORMALIZA TODO A FORMATO ARNm (CON 'U').
+    """
     print(f"🧠 Aprendiendo gramática para {organism_name}...")
     try:
         df = pd.read_csv(url)
-        # Asumiendo que el CSV tiene una columna 'sequence'
-        sequences = df['sequence'].dropna().tolist()
+        # --- CORRECCIÓN CLAVE ---
+        # Se asegura de que todas las secuencias de entrenamiento usen 'U'.
+        sequences = df['sequence'].dropna().str.upper().str.replace('T', 'U').tolist()
         
         counts = Counter()
         for seq in sequences:
@@ -51,7 +55,7 @@ def load_and_learn_grammar(organism_name, url):
             counts.update(subroutines_3)
             
         GENOMIC_GRAMMARS[organism_name] = dict(counts)
-        print(f"✅ Gramática para {organism_name} aprendida con {len(counts)} subrutinas.")
+        print(f"✅ Gramática para {organism_name} aprendida (en formato U).")
     except Exception as e:
         print(f"🚨 ERROR al aprender la gramática para {organism_name}: {e}")
 
@@ -80,38 +84,42 @@ Python
 
 def analyze_grammar(sequence, organism):
     """
-    Analiza la gramática de una secuencia y la compara con la norma.
-    VERSIÓN CORREGIDA Y FUNCIONAL.
+    Analiza la gramática de una secuencia de entrada del usuario.
+    NORMALIZA LA ENTRADA A FORMATO ARNm (CON 'U').
     """
-    # --- LA CORRECCIÓN CRÍTICA ---
-    # Estandarizamos la secuencia a formato ARNm (con 'U') ANTES de analizarla,
-    # para que coincida con el formato de la gramática aprendida.
+    # --- CORRECCIÓN CLAVE ---
+    # Se adapta al usuario. No importa si introduce T o U, se convierte a 'U'.
     sequence = sequence.upper().replace('T', 'U')
-    
+
     grammar = GENOMIC_GRAMMARS.get(organism, {})
-    if not grammar: return []
-    
+    if not grammar:
+        return []
+
     codons = [sequence[i:i+3] for i in range(0, len(sequence), 3) if len(sequence[i:i+3]) == 3]
     anomalies = []
-    
-    # Asegurarnos de que el vocabulario de la gramática también usa 'U'
-    # (Aunque ya debería ser así por el proceso de aprendizaje)
-    
-    # Analizar subrutinas de 2 codones
-    for i in range(len(codons) - 1):
-        subroutine = f"{codons[i]} {codons[i+1]}"
-        if subroutine not in grammar:
-            anomalies.append({'position': i, 'subroutine': subroutine, 'type': 'Anomalía Gramatical Rara'})
-            
-    # Analizar subrutinas de 3 codones (opcional, pero más potente)
-    for i in range(len(codons) - 2):
-        subroutine = f"{codons[i]} {codons[i+1]} {codons[i+2]}"
-        if subroutine not in grammar:
-            # Para no ser redundantes, solo añadimos si no es parte de una anomalía ya detectada
-            if not any(a['position'] == i or a['position'] == i+1 for a in anomalies):
-                 anomalies.append({'position': i, 'subroutine': subroutine, 'type': 'Anomalía Gramatical Rara (Longitud 3)'})
 
-    return anomalies
+    # Analizar subrutinas de 2 y 3 codones
+    for length in [2, 3]:
+        for i in range(len(codons) - length + 1):
+            subroutine = " ".join(codons[i:i+length])
+            if subroutine not in grammar:
+                anomalies.append({
+                    'position': i,
+                    'subroutine': subroutine,
+                    'type': f'Anomalía Gramatical (L={length})'
+                })
+
+    # Eliminar redundancias (si [A B C] es raro, no reportar también [A B])
+    final_anomalies = []
+    positions_reported = set()
+    for anomaly in sorted(anomalies, key=lambda x: len(x['subroutine']), reverse=True):
+        if anomaly['position'] not in positions_reported:
+            final_anomalies.append(anomaly)
+            # Marcar todas las posiciones cubiertas por esta anomalía
+            for i in range(len(anomaly['subroutine'].split(" "))):
+                positions_reported.add(anomaly['position'] + i)
+                
+    return sorted(final_anomalies, key=lambda x: x['position'])```
 
 def optimize_sequence(protein_sequence, organism):
     """Diseña una secuencia de ADN para una proteína."""
