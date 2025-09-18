@@ -2,190 +2,190 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>TIE Kinetic Predictor | By Raúl Vázquez</title>
+    <title>TIE Genetic Compiler | By Raúl Vázquez</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; max-width: 1000px; margin: 2rem auto; padding: 0 20px; color: #333; }
-        .container { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
-        h1, h2 { color: #1a237e; border-bottom: 2px solid #3949ab; padding-bottom: 10px; }
-        textarea { width: 100%; height: 180px; font-size: 1rem; border-radius: 8px; border: 1px solid #ccc; padding: 10px; box-sizing: border-box; margin-bottom: 1rem; resize: vertical; }
-        button { grid-column: 1 / -1; background-color: #3949ab; color: white; border: none; padding: 15px 30px; font-size: 1.2rem; font-weight: bold; border-radius: 8px; cursor: pointer; transition: background-color 0.2s; width: 100%; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 20px; color: #333; }
+        h1, h2 { color: #1a237e; }
+        textarea { width: 100%; font-size: 1rem; border-radius: 8px; border: 1px solid #ccc; padding: 10px; box-sizing: border-box; margin-bottom: 1rem; resize: vertical; }
+        button { background-color: #3949ab; color: white; border: none; padding: 12px 24px; font-size: 1rem; border-radius: 8px; cursor: pointer; transition: background-color 0.2s; }
         button:hover { background-color: #1a237e; }
-        #results { grid-column: 1 / -1; margin-top: 1rem; }
-        .disclaimer { font-size: 0.8rem; color: #777; margin-top: 2rem; border-top: 1px solid #eee; padding-top: 1rem; grid-column: 1 / -1;}
+        button:disabled { background-color: #9fa8da; cursor: not-allowed; }
+        .tabs { border-bottom: 2px solid #ccc; margin-bottom: 1rem; }
+        .tab-button { background: none; border: none; padding: 15px; font-size: 1.1rem; cursor: pointer; }
+        .tab-button.active { border-bottom: 3px solid #3949ab; font-weight: bold; color: #3949ab; }
+        .tool-content { padding: 1rem 0; }
+        .results-box { background-color: #f5f5f5; border: 1px solid #e0e0e0; border-radius: 8px; padding: 15px; margin-top: 1rem; min-height: 50px; font-family: monospace; white-space: pre-wrap; word-wrap: break-word; }
     </style>
 </head>
 <body>
-
-    <h1>TIE Kinetic Predictor</h1>
-    <p>Una IA determinista que predice la velocidad de traducción ribosomal basándose en la ley física de composición elemental (Vázquez, 2025). Este modelo para <strong>E. coli</strong> ha sido validado con datos experimentales (Hussmann et al., Cell 2021) alcanzando una correlación de <strong>r > 0.98</strong>.</p>
+    <h1>TIE Genetic Compiler</h1>
+    <p>Una IA determinista para el análisis, comparación y diseño de secuencias genéticas, basada en la Teoría de la Información Estructural (TIE).</p>
     
-    <div class="container">
-        <div>
-            <h2>Secuencia 1 (Original)</h2>
-            <textarea id="sequence1Input" placeholder="Pega aquí la secuencia para analizar su perfil..."></textarea>
-        </div>
-        <div>
-            <h2>Secuencia 2 (Mutada - Opcional)</h2>
-            <textarea id="sequence2Input" placeholder="Pega aquí una segunda secuencia para comparar..."></textarea>
-        </div>
+    <div class="tabs">
+        <button class="tab-button active" onclick="openTool(event, 'Analyzer')">Analizador</button>
+        <button class="tab-button" onclick="openTool(event, 'Comparator')">Comparador</button>
+        <button class="tab-button" onclick="openTool(event, 'Optimizer')">Optimizador</button>
+    </div>
 
-        <button onclick="masterAnalyze()">🔬 Analizar</button>
+    <!-- Herramienta 1: Analizador -->
+    <div id="Analyzer" class="tool-content">
+        <h2>Analizador de Gramática y Cinética</h2>
+        <select id="analyzer-organism">
+            <option value="ecoli">E. coli</option>
+            <option value="yeast">Levadura</option>
+        </select>
+        <textarea id="analyzer-sequence" placeholder="Pega aquí una secuencia de ADN..." rows="6"></textarea>
+        <button onclick="runAnalyzer()">Analizar Secuencia</button>
+        <div id="analyzer-results"></div>
+    </div>
 
-        <div id="results">
-            <p>Introduce una secuencia en el primer campo para generar su perfil, o en ambos campos para comparar.</p>
+    <!-- Herramienta 2: Comparador -->
+    <div id="Comparator" class="tool-content" style="display:none;">
+        <h2>Analizador de Impacto de Mutación</h2>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div>
+                <h4>Secuencia Original</h4>
+                <textarea id="comparator-seq1" rows="6"></textarea>
+            </div>
+            <div>
+                <h4>Secuencia Mutada</h4>
+                <textarea id="comparator-seq2" rows="6"></textarea>
+            </div>
         </div>
+        <button onclick="runComparator()">Comparar Perfiles Cinéticos</button>
+        <div id="comparator-results"></div>
+    </div>
 
-        <p class="disclaimer"><strong>PARA USO EXCLUSIVO EN INVESTIGACIÓN (RUO).</strong> Esta herramienta proporciona predicciones basadas en un modelo teórico y no es un dispositivo de diagnóstico médico. No debe ser utilizada para tomar decisiones clínicas. El usuario asume toda la responsabilidad por el uso de la información proporcionada.</p>
+    <!-- Herramienta 3: Optimizador -->
+    <div id="Optimizer" class="tool-content" style="display:none;">
+        <h2>Optimizador de Secuencias</h2>
+        <select id="optimizer-organism">
+            <option value="ecoli">Optimizar para E. coli</option>
+            <option value="yeast">Optimizar para Levadura</option>
+        </select>
+        <textarea id="optimizer-protein-seq" placeholder="Pega aquí una secuencia de aminoácidos (ej. MKRITALAP)..." rows="6"></textarea>
+        <button onclick="runOptimizer()">Optimizar ADN</button>
+        <h3>Secuencia de ADN Optimizada:</h3>
+        <div id="optimizer-results" class="results-box"></div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
     <script>
-        let activeChart = null; 
+        // --- Lógica de la Interfaz y API ---
+        const API_URL = "https://ia-cinetica-api.onrender.com"; // REEMPLAZA CON TU URL DE RENDER
+        let activeChart = null;
 
-        function masterAnalyze() {
-            const seq1 = document.getElementById('sequence1Input').value.trim();
-            const seq2 = document.getElementById('sequence2Input').value.trim();
-
-            if (seq1 && seq2) {
-                analyzeComparison(seq1, seq2);
-            } else if (seq1) {
-                analyzeSingle(seq1);
-            } else {
-                document.getElementById('results').innerHTML = '<p style="color: red;">Por favor, introduce al menos la Secuencia 1.</p>';
-            }
+        function openTool(evt, toolName) {
+            document.querySelectorAll('.tool-content').forEach(tc => tc.style.display = "none");
+            document.querySelectorAll('.tab-button').forEach(tb => tb.className = tb.className.replace(" active", ""));
+            document.getElementById(toolName).style.display = "block";
+            evt.currentTarget.className += " active";
         }
 
-        async function analyzeSingle(sequence) {
-            const resultsDiv = document.getElementById('results');
-            const button = document.querySelector('button');
-            setupAnalysisUI(button, resultsDiv, '🧠 Analizando perfil de secuencia única...');
-
+        async function apiCall(endpoint, body, button) {
+            button.disabled = true;
+            button.innerText = 'Procesando...';
             try {
-                const data = await fetchProfile(sequence);
-                if (data.length === 0) throw new Error("No se encontraron codones válidos en la secuencia.");
-                
-                renderChart({
-                    title: 'Perfil Cinético Estructural',
-                    datasets: [{
-                        label: 'Pausa Predicha (ms)',
-                        data: data.map(d => d.predicted_pause_ms),
-                        borderColor: 'navy',
-                        backgroundColor: 'rgba(26, 35, 126, 0.1)',
-                        fill: true,
-                        // Almacenamos los datos originales para usarlos en el tooltip
-                        customData: data 
-                    }],
-                    labels: data.map(d => d.codon_index) // Usamos solo el índice para el eje X
+                const response = await fetch(`${API_URL}${endpoint}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
                 });
+                if (!response.ok) throw new Error('Respuesta de la red no fue OK');
+                return await response.json();
             } catch (error) {
-                resultsDiv.innerHTML = `<p style="color: red;"><strong>Error:</strong> ${error.message}</p>`;
+                console.error("Error en la llamada API:", error);
+                return { error: error.message };
             } finally {
-                resetButtonUI(button, '🔬 Analizar');
+                button.disabled = false;
+                // El texto del botón se restaura en la función que lo llama
             }
         }
+        
+        // --- Lógica de Herramientas ---
+        async function runAnalyzer() {
+            const button = event.target;
+            const sequence = document.getElementById('analyzer-sequence').value;
+            const organism = document.getElementById('analyzer-organism').value;
+            const resultsDiv = document.getElementById('analyzer-results');
+            resultsDiv.innerHTML = '<p>Analizando...</p>';
 
-        async function analyzeComparison(seq1, seq2) {
-            const resultsDiv = document.getElementById('results');
-            const button = document.querySelector('button');
-            setupAnalysisUI(button, resultsDiv, '🧠 Realizando análisis comparativo...');
+            const data = await apiCall('/api/analyzer', { sequence, organism }, button);
             
-            try {
-                const [data1, data2] = await Promise.all([fetchProfile(seq1), fetchProfile(seq2)]);
-                
-                renderChart({
-                    title: 'Comparación de Perfiles Cinéticos',
-                    datasets: [
-                        {
-                            label: 'Secuencia 1 (Original)',
-                            data: data1.map(d => d.predicted_pause_ms),
-                            borderColor: 'blue',
-                            borderWidth: 2,
-                            fill: false,
-                            customData: data1 // Almacenamos datos de la secuencia 1
-                        },
-                        {
-                            label: 'Secuencia 2 (Mutada)',
-                            data: data2.map(d => d.predicted_pause_ms),
-                            borderColor: 'red',
-                            borderDash: [5, 5],
-                            borderWidth: 2,
-                            fill: false,
-                            customData: data2 // Almacenamos datos de la secuencia 2
-                        }
-                    ],
-                    labels: data1.map(d => d.codon_index) // Usamos solo el índice para el eje X
-                });
-            } catch (error) {
-                resultsDiv.innerHTML = `<p style="color: red;"><strong>Error:</strong> ${error.message}</p>`;
-            } finally {
-                resetButtonUI(button, '🔬 Analizar');
+            if (data.error || !data.kinetic_profile) {
+                resultsDiv.innerHTML = '<p style="color:red;">Error al analizar.</p>';
+                return;
             }
+            
+            resultsDiv.innerHTML = `<h3>Perfil Cinético</h3><canvas id="analyzer-chart"></canvas><h3>Informe Gramatical</h3><div id="analyzer-grammar-report" class="results-box"></div>`;
+            
+            // Renderizar gráfico
+            renderChart('analyzer-chart', [{
+                label: 'Pausa Predicha (ms)',
+                data: data.kinetic_profile.map(p => p.pause_ms),
+                borderColor: 'navy'
+            }], data.kinetic_profile.map(p => `${p.codon_index}:${p.codon}`));
+
+            // Mostrar informe gramatical
+            const reportDiv = document.getElementById('analyzer-grammar-report');
+            if(data.grammar_report.length > 0){
+                reportDiv.innerText = `Anomalías gramaticales encontradas:\n` + data.grammar_report.map(a => `- Pos ${a.position}: Subrutina rara [${a.subroutine}]`).join('\n');
+            } else {
+                reportDiv.innerText = 'No se encontraron anomalías gramaticales. La secuencia sigue la gramática estándar.';
+            }
+            button.innerText = 'Analizar Secuencia';
         }
 
-        async function fetchProfile(sequence) {
-            const apiUrl = 'https://ia-cinetica-api.onrender.com/api/predict/ecoli';
-            const response = await fetch(apiUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ sequence: sequence })
-            });
-            if (!response.ok) {
-                const err = await response.json();
-                throw new Error(err.error || `Error del servidor: ${response.status}`);
+        async function runComparator() {
+            const button = event.target;
+            const seq1 = document.getElementById('comparator-seq1').value;
+            const seq2 = document.getElementById('comparator-seq2').value;
+            const resultsDiv = document.getElementById('comparator-results');
+            resultsDiv.innerHTML = '<p>Comparando...</p>';
+
+            // Hacemos dos llamadas a la API
+            const data1 = await apiCall('/api/analyzer', { sequence: seq1, organism: 'ecoli' }, button);
+            const data2 = await apiCall('/api/analyzer', { sequence: seq2, organism: 'ecoli' }, button);
+            
+            if (data1.error || data2.error) {
+                resultsDiv.innerHTML = '<p style="color:red;">Error al comparar.</p>';
+                return;
             }
-            return response.json();
+
+            resultsDiv.innerHTML = `<canvas id="comparator-chart"></canvas>`;
+            renderChart('comparator-chart', [
+                { label: 'Original', data: data1.kinetic_profile.map(p => p.pause_ms), borderColor: 'blue' },
+                { label: 'Mutada', data: data2.kinetic_profile.map(p => p.pause_ms), borderColor: 'red', borderDash: [5, 5] }
+            ], data1.kinetic_profile.map(p => `${p.codon_index}:${p.codon}`));
+            button.innerText = 'Comparar Perfiles Cinéticos';
         }
 
-        function renderChart(config) {
-            const resultsDiv = document.getElementById('results');
+        async function runOptimizer() {
+            const button = event.target;
+            const proteinSeq = document.getElementById('optimizer-protein-seq').value;
+            const organism = document.getElementById('optimizer-organism').value;
+            const resultsDiv = document.getElementById('optimizer-results');
+            resultsDiv.innerHTML = 'Optimizando...';
+
+            const data = await apiCall('/api/optimizer', { protein_sequence: proteinSeq, organism }, button);
+            
+            if (data.error || !data.optimized_dna) {
+                resultsDiv.innerText = 'Error al optimizar.';
+            } else {
+                resultsDiv.innerText = data.optimized_dna;
+            }
+            button.innerText = 'Optimizar ADN';
+        }
+        
+        function renderChart(canvasId, datasets, labels) {
             if (activeChart) activeChart.destroy();
-            resultsDiv.innerHTML = `<h2>${config.title}</h2><canvas id="chartCanvas"></canvas>`;
-            const ctx = document.getElementById('chartCanvas');
+            const ctx = document.getElementById(canvasId);
             activeChart = new Chart(ctx, {
                 type: 'line',
-                data: {
-                    labels: config.labels,
-                    datasets: config.datasets
-                },
-                options: {
-                    scales: { y: { title: { display: true, text: 'Pausa Predicha (ms)' } }, x: { title: { display: true, text: 'Posición del Codón' } } },
-                    plugins: { 
-                        // --- ESTA ES LA CORRECCIÓN CLAVE ---
-                        tooltip: { 
-                            mode: 'index', 
-                            intersect: false,
-                            callbacks: {
-                                // Personalizamos el tooltip para mostrar el codón correcto
-                                title: function(tooltipItems) {
-                                    const index = tooltipItems[0].dataIndex;
-                                    return `Posición del Codón: ${index}`;
-                                },
-                                label: function(context) {
-                                    const datasetLabel = context.dataset.label || '';
-                                    const value = context.parsed.y;
-                                    // Accedemos a los datos personalizados para obtener el codón
-                                    const codonData = context.dataset.customData[context.dataIndex];
-                                    return `${datasetLabel}: ${codonData.codon} (${value.toFixed(2)} ms)`;
-                                }
-                            }
-                        } 
-                    },
-                    interaction: { mode: 'index', intersect: false }
-                }
+                data: { labels: labels, datasets: datasets.map(ds => ({...ds, fill: false, tension: 0.1})) },
+                options: { scales: { y: { title: { display: true, text: 'Pausa Predicha (ms)' } } } }
             });
-        }
-        
-        function setupAnalysisUI(button, resultsDiv, message) {
-            button.disabled = true;
-            button.innerText = 'Calculando...';
-            resultsDiv.innerHTML = `<p>${message}</p>`;
-        }
-        
-        function resetButtonUI(button, text) {
-            button.disabled = false;
-            button.innerText = text;
         }
     </script>
 </body>
