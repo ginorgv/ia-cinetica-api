@@ -72,21 +72,45 @@ def analyze_kinetics(sequence):
         profile.append({'codon_index': i, 'codon': codon, 'pause_ms': round(pausa, 2)})
     return profile
 
+code
+Python
+# ==========================================================
+# REEMPLAZA ESTA FUNCIÓN EN TU app.py
+# ==========================================================
+
 def analyze_grammar(sequence, organism):
-    """Analiza la gramática de una secuencia y la compara con la norma."""
+    """
+    Analiza la gramática de una secuencia y la compara con la norma.
+    VERSIÓN CORREGIDA Y FUNCIONAL.
+    """
+    # --- LA CORRECCIÓN CRÍTICA ---
+    # Estandarizamos la secuencia a formato ARNm (con 'U') ANTES de analizarla,
+    # para que coincida con el formato de la gramática aprendida.
+    sequence = sequence.upper().replace('T', 'U')
+    
     grammar = GENOMIC_GRAMMARS.get(organism, {})
     if not grammar: return []
     
     codons = [sequence[i:i+3] for i in range(0, len(sequence), 3) if len(sequence[i:i+3]) == 3]
     anomalies = []
     
+    # Asegurarnos de que el vocabulario de la gramática también usa 'U'
+    # (Aunque ya debería ser así por el proceso de aprendizaje)
+    
     # Analizar subrutinas de 2 codones
     for i in range(len(codons) - 1):
         subroutine = f"{codons[i]} {codons[i+1]}"
-        # Una "anomalía" es una subrutina que no existe en la gramática aprendida
         if subroutine not in grammar:
             anomalies.append({'position': i, 'subroutine': subroutine, 'type': 'Anomalía Gramatical Rara'})
             
+    # Analizar subrutinas de 3 codones (opcional, pero más potente)
+    for i in range(len(codons) - 2):
+        subroutine = f"{codons[i]} {codons[i+1]} {codons[i+2]}"
+        if subroutine not in grammar:
+            # Para no ser redundantes, solo añadimos si no es parte de una anomalía ya detectada
+            if not any(a['position'] == i or a['position'] == i+1 for a in anomalies):
+                 anomalies.append({'position': i, 'subroutine': subroutine, 'type': 'Anomalía Gramatical Rara (Longitud 3)'})
+
     return anomalies
 
 def optimize_sequence(protein_sequence, organism):
