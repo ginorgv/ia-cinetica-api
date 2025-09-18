@@ -4,188 +4,876 @@
     <meta charset="UTF-8">
     <title>TIE Genetic Compiler | By Raúl Vázquez</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 20px; color: #333; }
-        h1, h2 { color: #1a237e; }
-        textarea { width: 100%; font-size: 1rem; border-radius: 8px; border: 1px solid #ccc; padding: 10px; box-sizing: border-box; margin-bottom: 1rem; resize: vertical; }
-        button { background-color: #3949ab; color: white; border: none; padding: 12px 24px; font-size: 1rem; border-radius: 8px; cursor: pointer; transition: background-color 0.2s; }
-        button:hover { background-color: #1a237e; }
-        button:disabled { background-color: #9fa8da; cursor: not-allowed; }
-        .tabs { border-bottom: 2px solid #ccc; margin-bottom: 1rem; }
-        .tab-button { background: none; border: none; padding: 15px; font-size: 1.1rem; cursor: pointer; }
-        .tab-button.active { border-bottom: 3px solid #3949ab; font-weight: bold; color: #3949ab; }
-        .tool-content { padding: 1rem 0; }
-        .results-box { background-color: #f5f5f5; border: 1px solid #e0e0e0; border-radius: 8px; padding: 15px; margin-top: 1rem; min-height: 50px; font-family: monospace; white-space: pre-wrap; word-wrap: break-word; }
+        :root {
+            --primary: #2c3e50;
+            --secondary: #3498db;
+            --accent: #1abc9c;
+            --light: #ecf0f1;
+            --dark: #2c3e50;
+            --success: #27ae60;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+            --gray: #95a5a6;
+            --light-gray: #f8f9fa;
+            --border-radius: 8px;
+            --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            color: var(--dark);
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 0;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            color: white;
+            padding: 2rem;
+            border-radius: 0 0 var(--border-radius) var(--border-radius);
+            margin-bottom: 2rem;
+            box-shadow: var(--box-shadow);
+        }
+
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo-icon {
+            font-size: 2.5rem;
+            color: var(--accent);
+        }
+
+        h1 {
+            font-size: 2.2rem;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+
+        .tagline {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            max-width: 600px;
+        }
+
+        .card {
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            transition: var(--transition);
+        }
+
+        .card:hover {
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        }
+
+        .card-header {
+            border-bottom: 1px solid var(--light);
+            padding-bottom: 1rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h2 {
+            color: var(--primary);
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 5px;
+            background: var(--light-gray);
+            border-radius: var(--border-radius);
+            padding: 5px;
+            margin-bottom: 1.5rem;
+        }
+
+        .tab-button {
+            flex: 1;
+            background: none;
+            border: none;
+            padding: 12px 20px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            border-radius: calc(var(--border-radius) - 2px);
+            color: var(--dark);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .tab-button:hover {
+            background: rgba(52, 152, 219, 0.1);
+        }
+
+        .tab-button.active {
+            background: var(--secondary);
+            color: white;
+            box-shadow: 0 2px 8px rgba(52, 152, 219, 0.3);
+        }
+
+        .tool-content {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .tool-content.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--primary);
+        }
+
+        select, textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid var(--gray);
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+            transition: var(--transition);
+            font-family: 'Courier New', monospace;
+        }
+
+        select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--secondary);
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+        }
+
+        textarea {
+            min-height: 150px;
+            resize: vertical;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: var(--secondary);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 1rem;
+            font-weight: 500;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: 0 2px 8px rgba(52, 152, 219, 0.3);
+        }
+
+        .btn:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            background: var(--gray);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-primary {
+            background: var(--secondary);
+        }
+
+        .btn-accent {
+            background: var(--accent);
+            box-shadow: 0 2px 8px rgba(26, 188, 156, 0.3);
+        }
+
+        .btn-accent:hover {
+            background: #16a085;
+            box-shadow: 0 4px 12px rgba(26, 188, 156, 0.4);
+        }
+
+        .results-box {
+            background: var(--light-gray);
+            border: 1px solid var(--light);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .copy-btn {
+            background: var(--light);
+            border: none;
+            padding: 5px 10px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .copy-btn:hover {
+            background: var(--gray);
+            color: white;
+        }
+
+        .stats {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .stat-box {
+            background: white;
+            padding: 1rem;
+            border-radius: var(--border-radius);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            flex: 1;
+            min-width: 150px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: var(--gray);
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .alert {
+            padding: 12px 15px;
+            border-radius: var(--border-radius);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .alert-error {
+            background: #fde8e8;
+            color: var(--danger);
+            border-left: 4px solid var(--danger);
+        }
+
+        .alert-success {
+            background: #e8f5e9;
+            color: var(--success);
+            border-left: 4px solid var(--success);
+        }
+
+        .sequence-info {
+            background: var(--light-gray);
+            padding: 10px 15px;
+            border-radius: var(--border-radius);
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        footer {
+            text-align: center;
+            padding: 2rem 0;
+            color: var(--gray);
+            font-size: 0.9rem;
+            margin-top: 2rem;
+            border-top: 1px solid var(--light);
+        }
+
+        .tooltip {
+            position: relative;
+            display: inline-block;
+            margin-left: 5px;
+            color: var(--gray);
+            cursor: help;
+        }
+
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 200px;
+            background: var(--dark);
+            color: white;
+            text-align: center;
+            border-radius: var(--border-radius);
+            padding: 10px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 0.9rem;
+            font-weight: normal;
+        }
+
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-top: 1.5rem;
+        }
     </style>
 </head>
 <body>
-    <h1>TIE Genetic Compiler</h1>
-    <p>Una IA determinista para el análisis, comparación y diseño de secuencias genéticas, basada en la Teoría de la Información Estructural (TIE).</p>
-    
-    <div class="tabs">
-        <button class="tab-button active" onclick="openTool(event, 'Analyzer')">Analizador</button>
-        <button class="tab-button" onclick="openTool(event, 'Comparator')">Comparador</button>
-        <button class="tab-button" onclick="openTool(event, 'Optimizer')">Optimizador</button>
-    </div>
-
-    <!-- Herramienta 1: Analizador -->
-    <div id="Analyzer" class="tool-content">
-        <h2>Analizador de Gramática y Cinética</h2>
-        <select id="analyzer-organism">
-            <option value="ecoli">E. coli</option>
-            <option value="yeast">Levadura</option>
-        </select>
-        <textarea id="analyzer-sequence" placeholder="Pega aquí una secuencia de ADN..." rows="6"></textarea>
-        <button onclick="runAnalyzer()">Analizar Secuencia</button>
-        <div id="analyzer-results"></div>
-    </div>
-
-    <!-- Herramienta 2: Comparador -->
-    <div id="Comparator" class="tool-content" style="display:none;">
-        <h2>Analizador de Impacto de Mutación</h2>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-            <div>
-                <h4>Secuencia Original</h4>
-                <textarea id="comparator-seq1" rows="6"></textarea>
-            </div>
-            <div>
-                <h4>Secuencia Mutada</h4>
-                <textarea id="comparator-seq2" rows="6"></textarea>
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-dna logo-icon"></i>
+                    <div>
+                        <h1>TIE Genetic Compiler</h1>
+                        <p class="tagline">Una IA determinista para el análisis, comparación y diseño de secuencias genéticas, basada en la Teoría de la Información Estructural (TIE).</p>
+                    </div>
+                </div>
             </div>
         </div>
-        <button onclick="runComparator()">Comparar Perfiles Cinéticos</button>
-        <div id="comparator-results"></div>
+    </header>
+
+    <div class="container">
+        <div class="card">
+            <div class="tabs">
+                <button class="tab-button active" onclick="openTool(event, 'Analyzer')">
+                    <i class="fas fa-search"></i> Analizador
+                </button>
+                <button class="tab-button" onclick="openTool(event, 'Comparator')">
+                    <i class="fas fa-exchange-alt"></i> Comparador
+                </button>
+                <button class="tab-button" onclick="openTool(event, 'Optimizer')">
+                    <i class="fas fa-cogs"></i> Optimizador
+                </button>
+            </div>
+
+            <!-- Herramienta 1: Analizador -->
+            <div id="Analyzer" class="tool-content active">
+                <div class="card-header">
+                    <h2>Analizador de Gramática y Cinética</h2>
+                </div>
+                
+                <div class="form-group">
+                    <label for="analyzer-organism">Organismo:</label>
+                    <select id="analyzer-organism">
+                        <option value="ecoli">Escherichia coli</option>
+                        <option value="yeast">Saccharomyces cerevisiae (Levadura)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="analyzer-sequence">
+                        Secuencia de ADN 
+                        <span class="tooltip">
+                            <i class="fas fa-question-circle"></i>
+                            <span class="tooltiptext">Ingrese una secuencia de ADN (solo caracteres A, T, C, G)</span>
+                        </span>
+                    </label>
+                    <textarea id="analyzer-sequence" placeholder="Pega aquí una secuencia de ADN (ej: ATGGCATAGCGC...)" rows="6"></textarea>
+                    <div class="sequence-info">
+                        <span id="analyzer-length">0 nucleótidos</span>
+                        <span id="analyzer-gc">0% GC</span>
+                    </div>
+                </div>
+
+                <button class="btn btn-primary" onclick="runAnalyzer()">
+                    <i class="fas fa-play"></i> Analizar Secuencia
+                </button>
+
+                <div id="analyzer-results"></div>
+            </div>
+
+            <!-- Herramienta 2: Comparador -->
+            <div id="Comparator" class="tool-content">
+                <div class="card-header">
+                    <h2>Analizador de Impacto de Mutación</h2>
+                </div>
+                
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label for="comparator-seq1">Secuencia Original</label>
+                        <textarea id="comparator-seq1" placeholder="Secuencia de ADN original..." rows="6"></textarea>
+                        <div class="sequence-info">
+                            <span id="comparator1-length">0 nucleótidos</span>
+                            <span id="comparator1-gc">0% GC</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="comparator-seq2">Secuencia Mutada</label>
+                        <textarea id="comparator-seq2" placeholder="Secuencia de ADN mutada..." rows="6"></textarea>
+                        <div class="sequence-info">
+                            <span id="comparator2-length">0 nucleótidos</span>
+                            <span id="comparator2-gc">0% GC</span>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="btn btn-primary" onclick="runComparator()">
+                    <i class="fas fa-exchange-alt"></i> Comparar Perfiles Cinéticos
+                </button>
+
+                <div id="comparator-results"></div>
+            </div>
+
+            <!-- Herramienta 3: Optimizador -->
+            <div id="Optimizer" class="tool-content">
+                <div class="card-header">
+                    <h2>Optimizador de Secuencias</h2>
+                </div>
+                
+                <div class="form-group">
+                    <label for="optimizer-organism">Organismo Destino:</label>
+                    <select id="optimizer-organism">
+                        <option value="ecoli">Escherichia coli</option>
+                        <option value="yeast">Saccharomyces cerevisiae (Levadura)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="optimizer-protein-seq">
+                        Secuencia de Aminoácidos
+                        <span class="tooltip">
+                            <i class="fas fa-question-circle"></i>
+                            <span class="tooltiptext">Ingrese una secuencia de aminoácidos usando códigos de una letra (ej: MKRITALAP...)</span>
+                        </span>
+                    </label>
+                    <textarea id="optimizer-protein-seq" placeholder="Pega aquí una secuencia de aminoácidos (ej: MKRITALAP...)" rows="6"></textarea>
+                    <div class="sequence-info">
+                        <span id="optimizer-length">0 aminoácidos</span>
+                    </div>
+                </div>
+
+                <button class="btn btn-accent" onclick="runOptimizer()">
+                    <i class="fas fa-cogs"></i> Optimizar ADN
+                </button>
+
+                <div class="results-header">
+                    <h3>Secuencia de ADN Optimizada:</h3>
+                    <button class="copy-btn" onclick="copyToClipboard('optimizer-results')">
+                        <i class="fas fa-copy"></i> Copiar
+                    </button>
+                </div>
+                <div id="optimizer-results" class="results-box"></div>
+            </div>
+        </div>
     </div>
 
-    <!-- Herramienta 3: Optimizador -->
-    <div id="Optimizer" class="tool-content" style="display:none;">
-        <h2>Optimizador de Secuencias</h2>
-        <select id="optimizer-organism">
-            <option value="ecoli">Optimizar para E. coli</option>
-            <option value="yeast">Optimizar para Levadura</option>
-        </select>
-        <textarea id="optimizer-protein-seq" placeholder="Pega aquí una secuencia de aminoácidos (ej. MKRITALAP)..." rows="6"></textarea>
-        <button onclick="runOptimizer()">Optimizar ADN</button>
-        <h3>Secuencia de ADN Optimizada:</h3>
-        <div id="optimizer-results" class="results-box"></div>
-    </div>
+    <footer>
+        <div class="container">
+            <p>TIE Genetic Compiler &copy; 2023 | By Raúl Vázquez</p>
+        </div>
+    </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        // --- Lógica de la Interfaz y API ---
-        const API_URL = "https://ia-cinetica-api.onrender.com"; // REEMPLAZA CON TU URL DE RENDER
+        // --- Variables globales ---
+        const API_URL = "https://ia-cinetica-api.onrender.com";
         let activeChart = null;
 
+        // --- Inicialización ---
+        document.addEventListener('DOMContentLoaded', function() {
+            // Inicializar event listeners para las secuencias
+            document.getElementById('analyzer-sequence').addEventListener('input', updateSequenceInfo);
+            document.getElementById('comparator-seq1').addEventListener('input', updateSequenceInfo);
+            document.getElementById('comparator-seq2').addEventListener('input', updateSequenceInfo);
+            document.getElementById('optimizer-protein-seq').addEventListener('input', updateSequenceInfo);
+        });
+
+        // --- Utilidades ---
+        function calculateGCContent(sequence) {
+            if (!sequence) return 0;
+            const gcCount = (sequence.match(/[GC]/gi) || []).length;
+            return Math.round((gcCount / sequence.length) * 100);
+        }
+
+        function updateSequenceInfo(event) {
+            const textarea = event.target;
+            const sequence = textarea.value.trim();
+            const id = textarea.id;
+            
+            if (id === 'analyzer-sequence' || id === 'comparator-seq1' || id === 'comparator-seq2') {
+                const lengthSpan = document.getElementById(`${id.split('-')[0]}-length`);
+                const gcSpan = document.getElementById(`${id.split('-')[0]}-gc`);
+                
+                if (lengthSpan && gcSpan) {
+                    lengthSpan.textContent = `${sequence.length} nucleótidos`;
+                    gcSpan.textContent = `${calculateGCContent(sequence)}% GC`;
+                }
+            } else if (id === 'optimizer-protein-seq') {
+                const lengthSpan = document.getElementById('optimizer-length');
+                if (lengthSpan) {
+                    lengthSpan.textContent = `${sequence.length} aminoácidos`;
+                }
+            }
+        }
+
+        function copyToClipboard(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.innerText;
+            navigator.clipboard.writeText(text).then(() => {
+                // Feedback visual de copiado
+                const btn = event.target.closest('button');
+                const originalHtml = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-check"></i> Copiado';
+                setTimeout(() => {
+                    btn.innerHTML = originalHtml;
+                }, 2000);
+            });
+        }
+
         function openTool(evt, toolName) {
-            document.querySelectorAll('.tool-content').forEach(tc => tc.style.display = "none");
-            document.querySelectorAll('.tab-button').forEach(tb => tb.className = tb.className.replace(" active", ""));
-            document.getElementById(toolName).style.display = "block";
-            evt.currentTarget.className += " active";
+            // Ocultar todas las herramientas
+            document.querySelectorAll('.tool-content').forEach(tc => tc.classList.remove('active'));
+            document.querySelectorAll('.tab-button').forEach(tb => tb.classList.remove('active'));
+            
+            // Mostrar la herramienta seleccionada
+            document.getElementById(toolName).classList.add('active');
+            evt.currentTarget.classList.add('active');
         }
 
         async function apiCall(endpoint, body, button) {
+            const originalText = button.innerHTML;
             button.disabled = true;
-            button.innerText = 'Procesando...';
+            button.innerHTML = '<span class="loading"></span> Procesando...';
+            
             try {
                 const response = await fetch(`${API_URL}${endpoint}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(body)
                 });
-                if (!response.ok) throw new Error('Respuesta de la red no fue OK');
+                
+                if (!response.ok) throw new Error('Error en la respuesta del servidor');
                 return await response.json();
             } catch (error) {
                 console.error("Error en la llamada API:", error);
                 return { error: error.message };
             } finally {
                 button.disabled = false;
-                // El texto del botón se restaura en la función que lo llama
+                button.innerHTML = originalText;
             }
         }
         
         // --- Lógica de Herramientas ---
         async function runAnalyzer() {
             const button = event.target;
-            const sequence = document.getElementById('analyzer-sequence').value;
+            const sequence = document.getElementById('analyzer-sequence').value.trim();
             const organism = document.getElementById('analyzer-organism').value;
             const resultsDiv = document.getElementById('analyzer-results');
-            resultsDiv.innerHTML = '<p>Analizando...</p>';
-
-            const data = await apiCall('/api/analyzer', { sequence, organism }, button);
             
-            if (data.error || !data.kinetic_profile) {
-                resultsDiv.innerHTML = '<p style="color:red;">Error al analizar.</p>';
+            // Validación básica
+            if (!sequence) {
+                resultsDiv.innerHTML = '<div class="alert alert-error"><i class="fas fa-exclamation-circle"></i> Por favor, ingrese una secuencia de ADN</div>';
                 return;
             }
             
-            resultsDiv.innerHTML = `<h3>Perfil Cinético</h3><canvas id="analyzer-chart"></canvas><h3>Informe Gramatical</h3><div id="analyzer-grammar-report" class="results-box"></div>`;
+            // Validar que sea una secuencia de ADN válida
+            if (!/^[ATCGatcg]+$/.test(sequence)) {
+                resultsDiv.innerHTML = '<div class="alert alert-error"><i class="fas fa-exclamation-circle"></i> La secuencia contiene caracteres no válidos. Solo se permiten A, T, C, G.</div>';
+                return;
+            }
+            
+            resultsDiv.innerHTML = '<div class="alert"><i class="fas fa-spinner fa-spin"></i> Analizando secuencia...</div>';
+            
+            const data = await apiCall('/api/analyzer', { sequence, organism }, button);
+            
+            if (data.error) {
+                resultsDiv.innerHTML = `<div class="alert alert-error"><i class="fas fa-exclamation-circle"></i> Error: ${data.error}</div>`;
+                return;
+            }
+            
+            if (!data.kinetic_profile) {
+                resultsDiv.innerHTML = '<div class="alert alert-error"><i class="fas fa-exclamation-circle"></i> Error al analizar. No se recibieron datos válidos.</div>';
+                return;
+            }
+            
+            // Mostrar resultados
+            resultsDiv.innerHTML = `
+                <h3>Perfil Cinético de Traducción</h3>
+                <div class="chart-container">
+                    <canvas id="analyzer-chart"></canvas>
+                </div>
+                
+                <div class="stats">
+                    <div class="stat-box">
+                        <div class="stat-value">${data.kinetic_profile.length}</div>
+                        <div class="stat-label">Codones Analizados</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value">${Math.max(...data.kinetic_profile.map(p => p.pause_ms)).toFixed(1)}</div>
+                        <div class="stat-label">Pausa Máxima (ms)</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value">${(data.kinetic_profile.reduce((sum, p) => sum + p.pause_ms, 0) / data.kinetic_profile.length).toFixed(1)}</div>
+                        <div class="stat-label">Pausa Promedio (ms)</div>
+                    </div>
+                </div>
+                
+                <h3>Informe Gramatical</h3>
+                <div id="analyzer-grammar-report" class="results-box"></div>
+            `;
             
             // Renderizar gráfico
             renderChart('analyzer-chart', [{
                 label: 'Pausa Predicha (ms)',
                 data: data.kinetic_profile.map(p => p.pause_ms),
-                borderColor: 'navy'
+                borderColor: '#3498db',
+                backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                fill: true,
+                tension: 0.4
             }], data.kinetic_profile.map(p => `${p.codon_index}:${p.codon}`));
 
             // Mostrar informe gramatical
             const reportDiv = document.getElementById('analyzer-grammar-report');
-            if(data.grammar_report.length > 0){
-                reportDiv.innerText = `Anomalías gramaticales encontradas:\n` + data.grammar_report.map(a => `- Pos ${a.position}: Subrutina rara [${a.subroutine}]`).join('\n');
+            if (data.grammar_report && data.grammar_report.length > 0) {
+                reportDiv.innerHTML = `Anomalías gramaticales encontradas:\n` + 
+                    data.grammar_report.map(a => `- Posición ${a.position}: ${a.subroutine}`).join('\n');
             } else {
-                reportDiv.innerText = 'No se encontraron anomalías gramaticales. La secuencia sigue la gramática estándar.';
+                reportDiv.innerHTML = 'No se encontraron anomalías gramaticales. La secuencia sigue la gramática estándar.';
             }
-            button.innerText = 'Analizar Secuencia';
         }
 
         async function runComparator() {
             const button = event.target;
-            const seq1 = document.getElementById('comparator-seq1').value;
-            const seq2 = document.getElementById('comparator-seq2').value;
+            const seq1 = document.getElementById('comparator-seq1').value.trim();
+            const seq2 = document.getElementById('comparator-seq2').value.trim();
             const resultsDiv = document.getElementById('comparator-results');
-            resultsDiv.innerHTML = '<p>Comparando...</p>';
-
+            
+            // Validación básica
+            if (!seq1 || !seq2) {
+                resultsDiv.innerHTML = '<div class="alert alert-error"><i class="fas fa-exclamation-circle"></i> Ambas secuencias son requeridas</div>';
+                return;
+            }
+            
+            resultsDiv.innerHTML = '<div class="alert"><i class="fas fa-spinner fa-spin"></i> Comparando secuencias...</div>';
+            
             // Hacemos dos llamadas a la API
-            const data1 = await apiCall('/api/analyzer', { sequence: seq1, organism: 'ecoli' }, button);
-            const data2 = await apiCall('/api/analyzer', { sequence: seq2, organism: 'ecoli' }, button);
+            const [data1, data2] = await Promise.all([
+                apiCall('/api/analyzer', { sequence: seq1, organism: 'ecoli' }, button),
+                apiCall('/api/analyzer', { sequence: seq2, organism: 'ecoli' }, button)
+            ]);
             
             if (data1.error || data2.error) {
-                resultsDiv.innerHTML = '<p style="color:red;">Error al comparar.</p>';
+                resultsDiv.innerHTML = '<div class="alert alert-error"><i class="fas fa-exclamation-circle"></i> Error al comparar las secuencias</div>';
                 return;
             }
 
-            resultsDiv.innerHTML = `<canvas id="comparator-chart"></canvas>`;
+            resultsDiv.innerHTML = `
+                <h3>Comparación de Perfiles Cinéticos</h3>
+                <div class="chart-container">
+                    <canvas id="comparator-chart"></canvas>
+                </div>
+                
+                <div class="stats">
+                    <div class="stat-box">
+                        <div class="stat-value">${Math.abs(data1.kinetic_profile.length - data2.kinetic_profile.length)}</div>
+                        <div class="stat-label">Diferencia en Longitud</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value">${calculateProfileDifference(data1.kinetic_profile, data2.kinetic_profile)}%</div>
+                        <div class="stat-label">Diferencia en Perfil</div>
+                    </div>
+                </div>
+            `;
+            
             renderChart('comparator-chart', [
-                { label: 'Original', data: data1.kinetic_profile.map(p => p.pause_ms), borderColor: 'blue' },
-                { label: 'Mutada', data: data2.kinetic_profile.map(p => p.pause_ms), borderColor: 'red', borderDash: [5, 5] }
+                { 
+                    label: 'Original', 
+                    data: data1.kinetic_profile.map(p => p.pause_ms), 
+                    borderColor: '#3498db',
+                    backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                },
+                { 
+                    label: 'Mutada', 
+                    data: data2.kinetic_profile.map(p => p.pause_ms), 
+                    borderColor: '#e74c3c',
+                    backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                }
             ], data1.kinetic_profile.map(p => `${p.codon_index}:${p.codon}`));
-            button.innerText = 'Comparar Perfiles Cinéticos';
         }
 
         async function runOptimizer() {
             const button = event.target;
-            const proteinSeq = document.getElementById('optimizer-protein-seq').value;
+            const proteinSeq = document.getElementById('optimizer-protein-seq').value.trim().toUpperCase();
             const organism = document.getElementById('optimizer-organism').value;
             const resultsDiv = document.getElementById('optimizer-results');
+            
+            // Validación básica
+            if (!proteinSeq) {
+                resultsDiv.innerHTML = '<div class="alert alert-error"><i class="fas fa-exclamation-circle"></i> Por favor, ingrese una secuencia de aminoácidos</div>';
+                return;
+            }
+            
+            // Validar que sea una secuencia de aminoácidos válida
+            if (!/^[ACDEFGHIKLMNPQRSTVWY]+$/.test(proteinSeq)) {
+                resultsDiv.innerHTML = '<div class="alert alert-error"><i class="fas fa-exclamation-circle"></i> La secuencia contiene caracteres no válidos para aminoácidos</div>';
+                return;
+            }
+            
             resultsDiv.innerHTML = 'Optimizando...';
-
+            
             const data = await apiCall('/api/optimizer', { protein_sequence: proteinSeq, organism }, button);
             
             if (data.error || !data.optimized_dna) {
-                resultsDiv.innerText = 'Error al optimizar.';
+                resultsDiv.innerHTML = '<div class="alert alert-error"><i class="fas fa-exclamation-circle"></i> Error al optimizar la secuencia</div>';
             } else {
-                resultsDiv.innerText = data.optimized_dna;
+                resultsDiv.innerHTML = data.optimized_dna;
             }
-            button.innerText = 'Optimizar ADN';
         }
         
         function renderChart(canvasId, datasets, labels) {
             if (activeChart) activeChart.destroy();
+            
             const ctx = document.getElementById(canvasId);
             activeChart = new Chart(ctx, {
                 type: 'line',
-                data: { labels: labels, datasets: datasets.map(ds => ({...ds, fill: false, tension: 0.1})) },
-                options: { scales: { y: { title: { display: true, text: 'Pausa Predicha (ms)' } } } }
+                data: { 
+                    labels: labels, 
+                    datasets: datasets 
+                },
+                options: { 
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { 
+                        y: { 
+                            title: { 
+                                display: true, 
+                                text: 'Pausa Predicha (ms)' 
+                            } 
+                        },
+                        x: {
+                            ticks: {
+                                maxTicksLimit: 10,
+                                callback: function(value, index) {
+                                    return index % Math.ceil(labels.length / 10) === 0 ? labels[index] : '';
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false
+                        }
+                    }
+                }
             });
+        }
+
+        function calculateProfileDifference(profile1, profile2) {
+            // Calcular la diferencia promedio entre dos perfiles
+            const minLength = Math.min(profile1.length, profile2.length);
+            let totalDiff = 0;
+            
+            for (let i = 0; i < minLength; i++) {
+                totalDiff += Math.abs(profile1[i].pause_ms - profile2[i].pause_ms);
+            }
+            
+            const avgPause1 = profile1.reduce((sum, p) => sum + p.pause_ms, 0) / profile1.length;
+            const percentageDiff = (totalDiff / minLength) / avgPause1 * 100;
+            
+            return percentageDiff.toFixed(1);
         }
     </script>
 </body>
