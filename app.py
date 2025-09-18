@@ -1,138 +1,158 @@
-# ==========================================================
-# Archivo: app.py
-# El servidor de tu IA, listo para producción en Render.
-# ==========================================================
+# ==============================================================================
+# API del Compilador Genético TIE (Backend para el MVP)
+# Creado por Raúl Vázquez, implementado por IA.
+# ==============================================================================
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import pandas as pd
-from sklearn.linear_model import LinearRegression
-import numpy as np
+from collections import Counter
+import random
 import io
 
-# --- 1. Inicializar la aplicación Flask ---
+# --- 1. Inicialización y Carga de Datos ---
 app = Flask(__name__)
-# CORS(app) permite que tu futura página web llame a esta API
 CORS(app)
 
-# --- 2. Entrenar y cargar el modelo UNA SOLA VEZ al iniciar el servidor ---
-def load_prediction_engine():
-    print("🧠 Entrenando y cargando el motor predictivo para E. coli...")
-    
-    # Los datos verificados de Hussmann et al. (2021)
-    datos_reales = """Codon,Pausa_Experimental,Abundancia_ARNt
-UUU,81.1,0.0271
-UUC,75.0,0.0384
-UUA,135.2,0.0125
-UUG,111.9,0.0253
-UCU,105.1,0.0152
-UCC,92.5,0.0212
-UCA,120.2,0.0131
-UCG,102.8,0.0127
-UAU,88.8,0.0234
-UAC,76.7,0.0326
-CUU,97.3,0.0227
-CUC,94.5,0.0211
-CUA,166.4,0.0076
-CUG,70.9,0.0716
-CCU,111.8,0.0107
-CCC,188.7,0.0048
-CCA,158.4,0.0079
-CCG,103.5,0.0191
-CAU,93.4,0.0214
-CAC,77.5,0.0326
-CAA,113.6,0.0206
-CAG,83.0,0.0487
-CGU,86.8,0.0230
-CGC,78.2,0.0298
-CGA,244.6,0.0048
-CGG,228.4,0.0057
-AUU,97.4,0.0323
-AUC,77.4,0.0558
-AUA,221.7,0.0058
-AUG,101.9,0.0427
-ACU,102.0,0.0204
-ACC,81.9,0.0423
-ACA,125.7,0.0123
-ACG,93.5,0.0221
-AAU,101.4,0.0289
-AAC,82.4,0.0494
-AAG,79.5,0.0573
-AAA,91.8,0.0520
-AGU,112.5,0.0145
-AGC,84.9,0.0261
-AGA,262.8,0.0039
-AGG,271.7,0.0037
-GUU,92.6,0.0346
-GUC,84.4,0.0336
-GUA,103.9,0.0226
-GUG,97.3,0.0360
-GCU,90.2,0.0365
-GCC,78.7,0.0560
-GCA,86.6,0.0342
-GCG,78.6,0.0465
-GAU,89.9,0.0368
-GAC,78.4,0.0487
-GAA,86.5,0.0478
-GAG,77.2,0.0633
-GGU,119.3,0.0204
-GGC,98.6,0.0401
-GGA,181.8,0.0084
-GGG,160.7,0.0116
-UGG,99.9,0.0175
-"""
-    # He eliminado las columnas de varianza para simplificar
-    df = pd.read_csv(io.StringIO(datos_reales)).dropna().reset_index(drop=True)
-    df['Codon'] = df['Codon'].str.replace('T', 'U')
-    df['S_A'] = df['Codon'].str.count('A')
-    df['S_C'] = df['Codon'].str.count('C')
-    df['S_G'] = df['Codon'].str.count('G')
-    df['S_U'] = df['Codon'].str.count('U')
-    df['Escasez_ARNt'] = 1 / df['Abundancia_ARNt']
-    
-    X = df[['S_A', 'S_C', 'S_G', 'S_U', 'Escasez_ARNt']]
-    y = df['Pausa_Experimental']
-    model = LinearRegression().fit(X, y)
-    tRNA_map = df.set_index('Codon')['Abundancia_ARNt'].to_dict()
-    
-    print("✅ Motor para E. coli entrenado y listo.")
-    return {'model': model, 'tRNA_map': tRNA_map}
+# Diccionario para almacenar las "gramáticas" aprendidas por la IA
+GENOMIC_GRAMMARS = {}
 
-PHYSICAL_LAW_MODEL = load_prediction_engine()
+# Tabla de codones estándar para el Optimizador
+CODON_TABLE = {
+    'F': ['TTT', 'TTC'], 'L': ['TTA', 'TTG', 'CTT', 'CTC', 'CTA', 'CTG'],
+    'I': ['ATT', 'ATC', 'ATA'], 'M': ['ATG'], 'V': ['GTT', 'GTC', 'GTA', 'GTG'],
+    'S': ['TCT', 'TCC', 'TCA', 'TCG', 'AGT', 'AGC'], 'P': ['CCT', 'CCC', 'CCA', 'CCG'],
+    'T': ['ACT', 'ACC', 'ACA', 'ACG'], 'A': ['GCT', 'GCC', 'GCA', 'GCG'],
+    'Y': ['TAT', 'TAC'], 'H': ['CAT', 'CAC'], 'Q': ['CAA', 'CAG'],
+    'N': ['AAT', 'AAC'], 'K': ['AAG', 'AAA'], 'D': ['GAT', 'GAC'],
+    'E': ['GAA', 'GAG'], 'C': ['TGT', 'TGC'], 'W': ['TGG'],
+    'R': ['CGT', 'CGC', 'CGA', 'CGG', 'AGA', 'AGG'],
+    'G': ['GGT', 'GGC', 'GGA', 'GGG'], '*': ['TAA', 'TAG', 'TGA']
+}
 
-# --- 3. Crear el "Endpoint" de la API ---
-# Esta es la URL pública que recibirá las secuencias
-@app.route('/api/predict/ecoli', methods=['POST'])
-def predict_ecoli_profile():
-    data = request.get_json()
-    if not data or 'sequence' not in data:
-        return jsonify({'error': 'No se proporcionó una secuencia en el campo "sequence"'}), 400
-    
-    sequence = data['sequence']
-    model_object = PHYSICAL_LAW_MODEL
-    
+# Constantes físicas para el motor cinético
+CONSTANTES_FISICAS = {
+    'wG': 0.654, 'wA': 0.481, 'wC': 0.334, 'wT': 0.009, 'K': 60
+}
+
+def load_and_learn_grammar(organism_name, url):
+    """Carga datos y aprende la gramática para un organismo."""
+    print(f"🧠 Aprendiendo gramática para {organism_name}...")
     try:
-        dna_sequence = sequence.upper().replace('T', 'U')
-        codons = [dna_sequence[i:i+3] for i in range(0, len(dna_sequence), 3) if i+3 <= len(dna_sequence)]
-        results = []
-        for i, codon in enumerate(codons):
-            abundance = model_object['tRNA_map'].get(codon)
-            if abundance is None:
-                # Omitir codones de parada o desconocidos
-                continue
+        df = pd.read_csv(url)
+        # Asumiendo que el CSV tiene una columna 'sequence'
+        sequences = df['sequence'].dropna().tolist()
+        
+        counts = Counter()
+        for seq in sequences:
+            codons = [seq[i:i+3] for i in range(0, len(seq), 3) if len(seq[i:i+3]) == 3]
+            subroutines_2 = (" ".join(codons[i:i+2]) for i in range(len(codons) - 1))
+            subroutines_3 = (" ".join(codons[i:i+3]) for i in range(len(codons) - 2))
+            counts.update(subroutines_2)
+            counts.update(subroutines_3)
             
-            counts = pd.Series(list(codon)).value_counts()
-            descriptor = [counts.get('A', 0), counts.get('C', 0), counts.get('G', 0), counts.get('U', 0)]
-            tRNA_scarcity = 1 / abundance
-            
-            input_vector = np.array(descriptor + [tRNA_scarcity]).reshape(1, -1)
-            # Pasamos los nombres de las columnas para evitar el UserWarning
-            input_df = pd.DataFrame(input_vector, columns=['S_A', 'S_C', 'S_G', 'S_U', 'Escasez_ARNt'])
-            score = model_object['model'].predict(input_df)[0]
-            
-            results.append({'codon_index': i, 'codon': codon, 'predicted_pause_ms': round(score, 2)})
-            
-        return jsonify(results)
+        GENOMIC_GRAMMARS[organism_name] = dict(counts)
+        print(f"✅ Gramática para {organism_name} aprendida con {len(counts)} subrutinas.")
     except Exception as e:
-        # Registrar el error real en el servidor para depuración
-        print(f"ERROR: {e}")
-        return jsonify({'error': 'Ocurrió un error interno al procesar la secuencia.'}), 500
+        print(f"🚨 ERROR al aprender la gramática para {organism_name}: {e}")
+
+# --- 2. Funciones del Motor de la IA ---
+
+def analyze_kinetics(sequence):
+    """Calcula el perfil cinético de una secuencia."""
+    codons = [sequence[i:i+3] for i in range(0, len(sequence), 3) if len(sequence[i:i+3]) == 3]
+    profile = []
+    for i, codon in enumerate(codons):
+        counts = Counter(codon)
+        pausa = (
+            counts.get('A', 0) * CONSTANTES_FISICAS['wA'] +
+            counts.get('C', 0) * CONSTANTES_FISICAS['wC'] +
+            counts.get('G', 0) * CONSTANTES_FISICAS['wG'] +
+            counts.get('T', 0) * CONSTANTES_FISICAS['wT']
+        ) * 100 + CONSTANTES_FISICAS['K']
+        profile.append({'codon_index': i, 'codon': codon, 'pause_ms': round(pausa, 2)})
+    return profile
+
+def analyze_grammar(sequence, organism):
+    """Analiza la gramática de una secuencia y la compara con la norma."""
+    grammar = GENOMIC_GRAMMARS.get(organism, {})
+    if not grammar: return []
+    
+    codons = [sequence[i:i+3] for i in range(0, len(sequence), 3) if len(sequence[i:i+3]) == 3]
+    anomalies = []
+    
+    # Analizar subrutinas de 2 codones
+    for i in range(len(codons) - 1):
+        subroutine = f"{codons[i]} {codons[i+1]}"
+        # Una "anomalía" es una subrutina que no existe en la gramática aprendida
+        if subroutine not in grammar:
+            anomalies.append({'position': i, 'subroutine': subroutine, 'type': 'Anomalía Gramatical Rara'})
+            
+    return anomalies
+
+def optimize_sequence(protein_sequence, organism):
+    """Diseña una secuencia de ADN para una proteína."""
+    # En este MVP, usaremos una estrategia simple: elegir el codón más frecuente
+    # para ese aminoácido en la gramática del organismo.
+    grammar = GENOMIC_GRAMMARS.get(organism, {})
+    if not grammar: return "Error: Gramática no disponible."
+
+    # Pre-calcular las frecuencias de codones individuales
+    codon_freq = defaultdict(int)
+    for sub, count in grammar.items():
+        for codon in sub.split(" "):
+            codon_freq[codon] += count
+
+    optimized_dna = ""
+    for aa in protein_sequence.upper():
+        possible_codons = CODON_TABLE.get(aa)
+        if not possible_codons: continue
+
+        best_codon = possible_codons[0]
+        max_freq = -1
+        for codon in possible_codons:
+            freq = codon_freq.get(codon, 0)
+            if freq > max_freq:
+                max_freq = freq
+                best_codon = codon
+        optimized_dna += best_codon
+        
+    return optimized_dna
+
+# --- 3. Endpoints de la API ---
+
+@app.route('/api/analyzer', methods=['POST'])
+def handle_analyzer():
+    data = request.get_json()
+    sequence = data.get('sequence', '').upper()
+    organism = data.get('organism', 'ecoli')
+    
+    kinetic_profile = analyze_kinetics(sequence)
+    grammar_report = analyze_grammar(sequence, organism)
+    
+    return jsonify({
+        'kinetic_profile': kinetic_profile,
+        'grammar_report': grammar_report
+    })
+
+@app.route('/api/optimizer', methods=['POST'])
+def handle_optimizer():
+    data = request.get_json()
+    protein_sequence = data.get('protein_sequence', '')
+    organism = data.get('organism', 'ecoli')
+    
+    optimized_dna = optimize_sequence(protein_sequence, organism)
+    
+    return jsonify({'optimized_dna': optimized_dna})
+
+# --- 4. Carga Inicial del Servidor ---
+if __name__ == '__main__':
+    # Usamos Gists de GitHub con subconjuntos 
+    
+    BASE_URL = "https://raw.githubusercontent.com/ginorgv/ia-cinetica-api/main/"
+    
+    ecoli_data_url = f"{BASE_URL}ecoli_subset.csv"
+    yeast_data_url = f"{BASE_URL}yeast_subset.csv"
+    
+    load_and_learn_grammar('ecoli', ecoli_data_url)
+    load_and_learn_grammar('yeast', yeast_data_url)
+    app.run(host='0.0.0.0', port=10000)
