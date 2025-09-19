@@ -93,27 +93,25 @@ def handle_optimizer():
 # --- 5. Carga Inicial del Servidor ---
 # Usamos un decorador para cargar los datos antes de la primera petición.
 @app.before_request
-def load_grammars_once():
-    # El truco para que se ejecute solo una vez
-    if 'grammars_loaded' not in app.config:
-        print("🧠 Cargando modelos de gramática locales...")
-        try:
-            # La ruta se construye de forma segura desde la raíz de la aplicación
-            ecoli_path = os.path.join(app.root_path, 'static', 'ecoli_grammar.json')
-            yeast_path = os.path.join(app.root_path, 'static', 'yeast_grammar.json')
-            
-            with open(ecoli_path, 'r') as f:
-                GENOMIC_GRAMMARS['ecoli'] = json.load(f)
-            print(f"✅ Conocimiento de E. coli Recargado.")
-            
-            with open(yeast_path, 'r') as f:
-                GENOMIC_GRAMMARS['yeast'] = json.load(f)
-            print(f"✅ Conocimiento de Levadura Recargado.")
-            
-            app.config['grammars_loaded'] = True
-            
-        except Exception as e:
-            print(f"🚨 ERROR CRÍTICO al cargar conocimiento: {e}")
+def load_grammars():
+    print("🧠 Cargando modelos de gramática CURADOS desde la carpeta 'static'...")
+    try:
+        # La ruta se construye de forma segura desde la raíz de la aplicación
+        ecoli_path = os.path.join(app.root_path, 'static', 'ecoli_grammar_curated.json')
+        yeast_path = os.path.join(app.root_path, 'static', 'yeast_grammar_curated.json')
+        
+        with open(ecoli_path, 'r') as f:
+            GENOMIC_GRAMMARS['ecoli'] = json.load(f)
+        print(f"✅ Conocimiento CURADO de E. coli cargado.")
+        
+        with open(yeast_path, 'r') as f:
+            GENOMIC_GRAMMARS['yeast'] = json.load(f)
+        print(f"✅ Conocimiento CURADO de Levadura cargado.")
+        
+        app.config['grammars_loaded'] = True
+        
+    except Exception as e:
+        print(f"🚨 ERROR CRÍTICO al cargar conocimiento: {e}")
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
