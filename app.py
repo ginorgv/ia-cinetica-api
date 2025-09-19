@@ -3,17 +3,16 @@
 # Creado por Raúl Vázquez, implementado por IA.
 # VERSIÓN FINAL, CORREGIDA Y UNIFICADA
 # ==============================================================================
-from flask import Flask, request, jsonify
+# Archivo: app.py
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
-import pandas as pd
 from collections import Counter, defaultdict
-import random
-import io
+import json
+import os
 
 # --- 1. Inicialización de la Aplicación ---
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static')
 CORS(app)
-
 # --- 2. Definición de Constantes y Datos Globales ---
 
 # Diccionario para almacenar las "gramáticas" aprendidas
@@ -141,52 +140,37 @@ def optimize_sequence(protein_sequence, organism):
         
     return optimized_dna
 
-# --- 4. Endpoints de la API ---
+
+# --- ENDPOINTS DE LA API ---
+@app.route('/')
+def serve_index():
+    # Esta función servirá nuestro archivo index.html
+    return send_from_directory(app.static_folder, 'index.html')
+
+@app.route('/<path:path>')
+def serve_static(path):
+    # Esta función servirá otros archivos estáticos si los hubiera (CSS, JS)
+    return send_from_directory(app.static_folder, path)
 
 @app.route('/api/analyzer', methods=['POST'])
-def handle_analyzer():
-    data = request.get_json()
-    sequence = data.get('sequence', '')
-    organism = data.get('organism', 'ecoli')
-    
-    if not sequence:
-        return jsonify({'error': 'No se proporcionó secuencia'}), 400
-    
-    kinetic_profile = analyze_kinetics(sequence)
-    grammar_report = analyze_grammar(sequence, organism)
-    
-    return jsonify({
-        'kinetic_profile': kinetic_profile,
-        'grammar_report': grammar_report
-    })
-
+# ... (código idéntico al del último app.py)
 @app.route('/api/optimizer', methods=['POST'])
-def handle_optimizer():
-    data = request.get_json()
-    protein_sequence = data.get('protein_sequence', '')
-    organism = data.get('organism', 'ecoli')
+# ... (código idéntico al del último app.py)
 
-    if not protein_sequence:
-        return jsonify({'error': 'No se proporcionó secuencia de proteína'}), 400
+# --- CARGA INICIAL DEL SERVIDOR ---
+def load_grammars():
+    print("🧠 Cargando modelos de gramática locales...")
+    try:
+        with open(os.path.join(app.static_folder, 'ecoli_grammar.json'), 'r') as f:
+            GENOMIC_GRAMMARS['ecoli'] = json.load(f)
+        with open(os.path.join(app.static_folder, 'yeast_grammar.json'), 'r') as f:
+            GENOMIC_GRAMMARS['yeast'] = json.load(f)
+        print(f"✅ Conocimiento de E. coli cargado.")
+        print(f"✅ Conocimiento de Levadura cargado.")
+    except Exception as e:
+        print(f"🚨 ERROR CRÍTICO al cargar conocimiento: {e}")
 
-    optimized_dna = optimize_sequence(protein_sequence, organism)
-    
-    return jsonify({'optimized_dna': optimized_dna})
-
-# --- 5. Carga Inicial del Servidor ---
-@app.before_request
-def before_first_request():
-    # Esta función se asegura de que las gramáticas se carguen solo una vez
-    if not GENOMIC_GRAMMARS:
-        # Reemplaza 'TU-USUARIO-DE-GITHUB' con tu nombre de usuario real
-        BASE_URL = "https://raw.githubusercontent.com/ginorgv/ia-cinetica-api/main/"
-        
-        ecoli_data_url = f"{BASE_URL}ecoli_subset.csv"
-        yeast_data_url = f"{BASE_URL}yeast_subset.csv"
-        
-        load_and_learn_grammar('ecoli', ecoli_data_url)
-        load_and_learn_grammar('yeast', yeast_data_url)
+load_grammars()
 
 if __name__ == '__main__':
-    # Flask se encarga de llamar a `before_first_request` antes de la primera petición
-    app.run(host='0.0.0.0', port=10000)
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
